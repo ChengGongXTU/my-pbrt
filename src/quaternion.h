@@ -1,6 +1,5 @@
 #include "pbrt.h"
 #include "Geometry.h"
-#include "Transform.h"
 
 class Quaternion {
 public:
@@ -59,14 +58,22 @@ public:
 		return *this;
 	}
 
-	// Transform form p to p' point
+	// create a Transform M from Quaternion q
 	Transform ToTransform() const;
+
+	// change this quaternion q base on Transform t
+	Quaternion(const Transform &t);
+
+
 
 
 	//-----------------------quaternion public data----------------------------------
 	Vector v;
 	float w;
 };
+
+// slerp is a independent funcion, not belong Quaternion class.
+Quaternion slerp(float f, const Quaternion &q1, const Quaternion &q2);
 
 
 //--------------------------Quaternion inline function--------------------------------

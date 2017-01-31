@@ -1,5 +1,6 @@
 #include"pbrt.h"
 #include"Geometry.h"
+#include"quaternion.h"
 
 struct Matrix4x4 {
 	//------------------初始化------------------------------------
@@ -131,10 +132,46 @@ public:
 		return det < 0.f;
 	}
 
+	//--------------bool operate--------------
+	bool operator!=(const Transform &t)const {
+		return m != t.m || mInv != t.mInv;
+	}
+	bool operator==(const Transform &t)const {
+		return m == t.m && mInv == t.mInv;
+	}
+
 private:
 	//-------------------------transform private data--------------------------------
 	Matrix4x4 m, mInv;                    //---------含有一个矩阵和相应的逆矩阵------
+	friend struct Quaternion;
+	friend class AnimatedTransform;
 
+};
+
+
+class AnimatedTransform {
+	//-----------------------publicb method-------------------------
+	AnimatedTransform(const Transform *transform1, float time1,
+		const Transform *transform2, float time2)
+		:startTime(time1), endTime(time2),
+		startTransform(transform1), endTransform(transform2),
+		actuallyAnimated(*startTransform != *endTransform) {
+		Decompose(startTransform->m, &T[0], &R[0], &S[0]);
+		Decompose(endTransform->m, &T[1], &R[1], &S[1]);
+	}
+
+	static void Decompose(const Matrix4x4 &m, Vector *T, Quaternion *Rquat, Matrix4x4 *S);
+
+
+	//-----------------------private data---------------------------
+	const Transform *startTransform;
+	const Transform *endTransform;
+	const float startTime;
+	const float endTime;
+	const bool actuallyAnimated;
+	Vector T[2];
+	Quaternion R[2];
+	Matrix4x4 S[2];
 };
 
 
