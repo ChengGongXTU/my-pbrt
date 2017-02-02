@@ -1,4 +1,5 @@
 #include "quaternion.h"
+#include"Transform.h"
 
 //   the rotation transform M for quaternion q: "p' = Mp = qpq-1"
 Transform Quaternion::ToTransform()const {

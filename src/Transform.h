@@ -150,7 +150,7 @@ private:
 
 
 class AnimatedTransform {
-	//-----------------------publicb method-------------------------
+	//-----------------------------------------------
 	AnimatedTransform(const Transform *transform1, float time1,
 		const Transform *transform2, float time2)
 		:startTime(time1), endTime(time2),
@@ -159,9 +159,11 @@ class AnimatedTransform {
 		Decompose(startTransform->m, &T[0], &R[0], &S[0]);
 		Decompose(endTransform->m, &T[1], &R[1], &S[1]);
 	}
-
+	
+	//-----------------------publicb method-------------------------
 	static void Decompose(const Matrix4x4 &m, Vector *T, Quaternion *Rquat, Matrix4x4 *S);
-
+	void Interpolate(float time, Transform *t)const;
+	BBox MotionBounds(const BBox &b, bool useInverse)const;
 
 	//-----------------------private data---------------------------
 	const Transform *startTransform;

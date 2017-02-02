@@ -187,16 +187,96 @@ Matrix4x4 Inverse(const Matrix4x4 &m) {
 
 //--------------------Transformation decomposition------------------
 void AnimatedTransform::Decompose(const Matrix4x4 &m, Vector *T, Quaternion *Rquat, Matrix4x4 *S) {
+	
 	// Translation T
 	T->x = m.m[0][3];
 	T->y = m.m[1][3];
 	T->z = m.m[2][3];
 
-	// remove translation, create a 4x4 new trasform matrix
+	// remove translation, create a 4x4 new trasform matrix M
 	Matrix4x4 M = m;
 	for (int i = 0; i < 3; ++i)
 		M.m[i][3] = M.m[3][i] = 0.f;
 	M.m[3][3] = 1.f;
 
+	//get the rotation R by a interative equation.
+	float norm;
+	int count = 0;
+	Matrix4x4 R = M;  //M(i)
+	do {
+
+		// compute the interative equation: M(i+1) = 0.5*( M(i) + M(i).T.I )
+		Matrix4x4 Rnext; //M(i+1)
+		Matrix4x4 Rit = Inverse(Transpose(R)); //M(i).T.I
+		for (int i = 0; i < 4; ++i)
+			for (int j = 0; j < 4; ++j)
+				Rnext.m[i][j] = 0.5f*(R.m[i][j] + Rit.m[i][j]);
+
+		//compute the difference between M(i) and M(i+1)
+		norm = 0.f;
+		for (int i = 0; i < 3; ++i) {
+			float n = fabsf(R.m[i][0] - Rnext.m[i][0] +
+				R.m[i][1] - Rnext.m[i][1] +
+				R.m[i][2] - Rnext.m[i][2]);
+			norm = max(norm, n);
+		}
+	} while (++count < 100 && norm > .0001f);   // set the end of iterative action.
+	*Rquat = Quaternion(R);
+
+	// get the scale S: S = R.I x M
+	*S = Matrix4x4::Mul(Inverse(R), M);
+}
+
+void AnimatedTransform::Interpolate(float time, Transform *t) const {
+
+	// make sure that time is in the range from start to end.
+	if (!actuallyAnimated || time <= startTime) {
+		*t = *startTransform;
+		return;
+	}
+	if (time >= endTime) {
+		*t = *endTransform;
+		return;
+	}
+
+	// set the relative value of time in the range (0,1)
+	float dt = (time - startTime) / (endTime - startTime);
+
+	// interpolate translation
+	Vector trans = (1.f - dt)*T[0] + dt*T[1];
+
+	// interpolate rotation
+	Quaternion rotation = slerp(dt, R[0], R[1]);
+
+	// interpolate scale
+	Matrix4x4 scale;
+	for (int i = 0; i < 3; ++i)
+		for (int j = 0; j < 3; ++j)
+			scale.m[i][j] = Lerp(dt, S[0].m[i][j], S[1].m[i][j]);
+
+	// compute new transform by the product of Trans, Rotation and Scale
+	// notice: they should be change into the matrix style.
+	*t = Translate(trans)*rotation.ToTransform*Transform(scale);
+}
+
+BBox AnimatedTransform::MotionBounds(const BBox &b, bool useInverse)const {
+	
+	// check the time's range
+	if (!actuallyAnimated) return Inverse(*startTransform)(b);
+
+	// compute a bbox include 128 steps in the animated motion 
+	BBox ret;
+	const int nSteps = 128;
+		//In a step, compute the transform "t" and its BBox "t(b)", than merge into the BBox "ret".
+	for (int i = 0; i < nSteps; ++i) {
+		Transform t;
+		float time = Lerp(float(i) / float(nSteps), startTime, endTime);
+		Interpolate(time, &t);
+		if (useInverse)
+			t = Inverse(t);
+		ret = Union(ret, t(b));
+	}
+	return ret;
 
 }
+
