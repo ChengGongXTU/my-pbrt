@@ -14,6 +14,9 @@ using std::max;
 using std::swap;
 using std::sort;
 
+//----------global macro for memory management--------------------------------
+#define ALLOCA(TYPE, COUNT) (TYPE *)alloca((COUNT) * sizeof(TYPE))
+
 #define PBRT_VERSION "2.0.0"
 //-------------------------------类和结构体的声明------------------------------------
 class Vector;
