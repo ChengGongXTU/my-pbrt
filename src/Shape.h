@@ -11,26 +11,26 @@ public:
 
 	//  bounding: build shape's Box in world coorinate. 
 	virtual BBox ObjectBound() const = 0;
-	BBox WorldBound() const;
+	virtual BBox WorldBound() const;
 
 	// refinement: check if the shape can be intersected by ray
-	bool CanIntersect() const;
-	void Refine(vector<Reference<Shape>> &refined) const;
+	virtual bool CanIntersect() const;
+	virtual void Refine(vector<Reference<Shape>> &refined) const;
 
 	//intersection: 1, compute the imformation of intersection; 2, check if a ray intersect this shape
 	// rayEpsilon is the maximum floating-point error,solving the problem of self-intersection.
-	bool Intersect(const Ray &ray, float *tHit, float *rayEpsilon,
+	virtual bool Intersect(const Ray &ray, float *tHit, float *rayEpsilon,
 		DifferentialGeometry *dg) const;
-	bool IntersectP(const Ray &ray) const;
+	virtual bool IntersectP(const Ray &ray) const;
 
 	// shading geometry
-	virtual void GetShadingGeometry(const Transform &obj2world,
+	virtual virtual void GetShadingGeometry(const Transform &obj2world,
 		const DifferentialGeometry &dg, DifferentialGeometry *dgShading)const {
 		*dgShading = dg;
 	}
 
 	//suface area for area lights
-	float Area() const;
+	virtual float Area() const;
 
 //---------------------Shape Public Data--------------
 	// transform pointer for coordinate mapping, and bool for normal reverse.

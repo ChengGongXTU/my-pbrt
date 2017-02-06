@@ -119,6 +119,8 @@ public:
 
 	inline Ray operator()(const Ray &r)const;
 
+	inline void operator()(const Ray &r, Ray *rt) const;
+
 	inline BBox operator()(const BBox &b)const;
 
 	//---------------¾ØÕóÖ®¼äµÄÔËËã---------------------------------------
@@ -224,6 +226,17 @@ inline Ray Transform::operator()(const Ray &r)const {                   //-----×
 	(*this)(ret.o, &ret.o);
 	(*this)(ret.d, &ret.d);
 	return ret;
+}
+
+inline void Transform::operator()(const Ray &r, Ray *rt) const {
+	(*this)(r.o, &rt->o);
+	(*this)(r.d, &rt->d);
+	if (rt != &r) {
+		rt->mint = r.mint;
+		rt->maxt = r.maxt;
+		rt->time = r.time;
+		rt->depth = r.depth;
+	}
 }
 
 inline BBox Transform::operator()(const BBox &b)const {              //----×ª»»°üÎ§ºÐ£ºÖð¸ö×ª»»¶¥µã£¨Ì«Âé·³ÁË£¡£©----------
