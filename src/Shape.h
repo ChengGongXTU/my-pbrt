@@ -1,7 +1,6 @@
 #include"pbrt.h"
 #include"Memory.h"
 #include"Transform.h"
-#include"diffgeom.h"
 
 
 class Shape :public ReferenceCounted {

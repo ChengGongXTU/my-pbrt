@@ -1,5 +1,6 @@
 #include"pbrt.h"
 #include"Geometry.h"
+#include"Shape.h"
 
 
 struct DifferentialGeometry {

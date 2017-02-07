@@ -17,6 +17,7 @@ BBox Sphere::ObjectBound()const {
 		Point(radius, radius, zmax));
 }
 
+
 bool Sphere::Intersect(const Ray &r, float *tHit, float *rayEpsilon,
 	DifferentialGeometry *dg) const {
 	float phi;
@@ -86,6 +87,85 @@ bool Sphere::Intersect(const Ray &r, float *tHit, float *rayEpsilon,
 	Vector dpdv = (thetaMax - thetaMin) *
 		Vector(phit.z * cosphi, phit.z * sinphi,
 			-radius * sinf(theta));
+
+	//partial derivative of normal vector
+	//compute the second partial derivative for second fundamental form
+	Vector d2Pduu = -phiMax * phiMax * Vector(phit.x, phit.y, 0);       //  d^2p/du^2 = -phiMax^2(x,y,z)
+	Vector d2Pduv = (thetaMax - thetaMin) * phit.z * phiMax *			//  d^2p/dudv = (thetaMax - thetaMin)*z*phiMax(-sin(theta),cos(theta),0)
+		Vector(-sinphi, cosphi, 0.);
+	Vector d2Pdvv = -(thetaMax - thetaMin) * (thetaMax - thetaMin) *	//  d^2p/dv^2 = -(thetaMax - thetaMin)*(x,y,z)
+		Vector(phit.x, phit.y, phit.z);
+	
+	//coefficients of the first fundamental form
+	float E = Dot(dpdu, dpdu);
+	float F = Dot(dpdu, dpdv);
+	float G = Dot(dpdv, dpdv);
+
+	//coefficients of the second fundamental form
+	Vector N = Normalize(Cross(dpdu, dpdv));
+	float e = Dot(N, d2Pduu);
+	float f = Dot(N, d2Pduv);
+	float g = Dot(N, d2Pdvv);
+
+	// compute the dn/du and dm/dv by coefficients: e,f,g and E,F,G.
+	float invEGF2 = 1.f / (E*G - F*F);
+	Normal dndu = Normal((f*F - e*G) * invEGF2 * dpdu +
+		(e*F - f*E) * invEGF2 * dpdv);
+	Normal dndv = Normal((g*F - f*G) * invEGF2 * dpdu +
+		(f*F - g*E) * invEGF2 * dpdv);
+
+	// differentialgeometry function initialization
+	const Transform &o2w = *ObjectToWorld;
+	*dg = DifferentialGeometry(o2w(phit), o2w(dpdu), o2w(dpdv),    // save the imformation of intersection in world space
+		o2w(dndu), o2w(dndv), u, v, this);
+	*tHit = thit;
+	*rayEpsilon = 5e-4f * *tHit;
+
+	return true;
+}
+
+// much close to Intersect function.
+bool Sphere::IntersectP(const Ray &r) const {
+	float phi;
+	Point phit;
+	Ray ray;
+	(*WorldToObject)(r, &ray);  
+	float A = ray.d.x*ray.d.x + ray.d.y*ray.d.y + ray.d.z*ray.d.z;   
+	float B = 2 * (ray.d.x*ray.o.x + ray.d.y*ray.o.y + ray.d.z*ray.o.z);  
+	float C = ray.o.x*ray.o.x + ray.o.y*ray.o.y + ray.o.z*ray.o.z - radius*radius;  
+	float t0, t1;
+	if (Quadratic(A, B, C, &t0, &t1))
+		return false;
+	if (t0 > ray.maxt || t1 < ray.mint)
+		return false;
+	float thit = t0;
+	if (t0 < ray.mint) {
+		thit = t1;
+		if (thit > ray.maxt) return false;
+	}
+	phit = ray(thit);                   
+	if (phit.x == 0.f && phit.y == 0.f) phit.x = 1e-5f * radius;
+	phi = atan2f(phit.y, phit.x);	   
+	if (phi < 0.) phi += 2.f*M_PI;
+	if ((zmin > -radius && phit.z <zmin) ||
+		(zmax>radius && phit.z>zmax) || phi > phiMax) {
+		if (thit == t1) return false;
+		if (t1 > ray.maxt) return false;	
+		thit = t1;
+		phit = ray(thit);
+		if (phit.x == 0.f && phit.y == 0.f) phit.x = 1e-5f * radius;
+		phi = atan2f(phit.y, phit.x);
+		if (phi < 0.) phi += 2.f*M_PI;
+		if ((zmin > -radius && phit.z <zmin) ||
+			(zmax>radius && phit.z > zmax) || phi > phiMax)
+			return false;
+	}
+	return true;
+}
+
+
+float Sphere::Area() const {
+	return phiMax * radius * (zmax - zmin);
 }
 
 

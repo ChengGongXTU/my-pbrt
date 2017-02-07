@@ -1,5 +1,6 @@
 #include"pbrt.h"
 #include"Shape.h"
+#include"diffgeom.h"
 
 class Sphere:public Shape {
 public:
@@ -13,6 +14,12 @@ public:
 // compute intersection by transform ray from world to object space.
 	bool Intersect(const Ray &r, float *tHit, float *rayEpsilon,
 		DifferentialGeometry *dg) const;
+
+// check if a ray is intersected by this sphere.
+	bool IntersectP(const Ray &ray) const;
+
+// compute area of surface;
+	float Area()const;
 
 private:
 // sphere private data

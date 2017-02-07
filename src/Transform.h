@@ -113,6 +113,7 @@ public:
 	inline void operator()(const Point &pt, Point *ptrans)const;
 
 	inline Vector operator()(const Vector &v) const;
+
 	inline void operator()(const Vector &v, Vector *vtrans)const;
 
 	inline Normal operator()(const Normal &n)const;
