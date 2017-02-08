@@ -13,6 +13,7 @@ struct DifferentialGeometry {
 		const Normal &DNDU, const Normal &DNDV,
 		float uu, float vv, const Shape *sh);
 
+	void ComputeDifferentials(const RayDifferential &ray) const;
 	//--------------------differentialgeometry public data-------------
 	//  if a point p is in the surface and p =f(u,v)
 	//  wo can store some imformation about point p.
@@ -23,4 +24,7 @@ struct DifferentialGeometry {
 
 	Vector dpdu, dpdv; // partial derivatives
 	Normal dndu, dndv;
+
+	mutable Vector dpdx, dpdy;
+	mutable float dudx, dvdx, dudy, dvdy;
 };

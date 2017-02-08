@@ -67,6 +67,14 @@ public:
 			uv[2][0] = 1.; uv[2][1] = 1.;
 		}
 	}
+
+	//  suface area 
+	float Area()const;
+
+	// shading geometry initialization
+	void GetShadingGeometry(const Transform &obj2world,
+		const DifferentialGeometry &dg, DifferentialGeometry *dgShading)const;
+
 private:
 	Reference<TriangleMesh> mesh;
 	int *v;

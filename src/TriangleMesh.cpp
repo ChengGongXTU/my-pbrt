@@ -127,3 +127,82 @@ bool Triangle::Intersect(const Ray &ray, float *tHit, float *rayEpsilon,
 	*rayEpsilon = 1e-3f**tHit;
 	return true;
 }
+
+float Triangle::Area()const {
+	const Point &p1 = mesh->p[v[0]];
+	const Point &p2 = mesh->p[v[1]];
+	const Point &p3 = mesh->p[v[2]];
+	return 0.5f*Cross(p2 - p1, p3 - p1).Length();
+}
+
+void Triangle::GetShadingGeometry(const Transform &obj2world,
+	const DifferentialGeometry &dg, DifferentialGeometry *dgShading)const {
+
+	if (!mesh->n && mesh->s) {
+		*dgShading = dg;
+		return;
+	}
+
+	// barycentric coordinate,  u = b0*u0+b1*u1+ b2*u2, v = b0*v0+b1*v1+ b2*v2
+	float b[3];
+	float uv[3][2];
+	GetUVs(uv);
+	float A[2][2] = {
+		{ uv[1][0] - uv[0][0], uv[2][0] - uv[0][0] },
+		{ uv[1][1] - uv[0][1], uv[2][1] - uv[0][1] }
+	};
+	float C[2] = { dg.u - uv[0][0],dg.v - uv[0][1] };
+	if (!SolveLinearSystem2x2(A, C, &b[1], &b[2])) {
+		b[0] = b[1] = b[2] = 1.f / 3.f;
+	}
+	else
+		b[0] = 1.f - b[1] - b[2];
+
+	// get the shading tangents
+	Normal ns;
+	Vector ss, ts;
+	// get the u
+	if(mesh->n) ns = Normalize(obj2world(b[0] * mesh->n[v[0]] +b[1] * mesh->n[v[1]] +b[2] * mesh->n[v[2]]));
+	else ns = dg.nn;
+	// get the v
+	if (mesh->s) ss = Normalize(obj2world(b[0] * mesh->s[v[0]] +b[1] * mesh->s[v[1]] +b[2] * mesh->s[v[2]]));
+	else ss = Normalize(dg.dpdu);
+
+	ts = Cross(ss, ns);
+	if (ts.LengthSquared() > 0.f) {
+		ts = Normalize(ts);
+		ss = Cross(ts, ns);
+	}
+	else
+		CoordinateSystem((Vector)ns, &ss, &ts);
+
+	// get the dndu and dndv. similar to computing dpdu and dpdv in Intersectfunction
+	Normal dndu, dndv;
+	if (mesh->n) {
+		float uvs[3][2];
+		GetUVs(uvs);
+		float du1 = uvs[0][0] - uvs[2][0];
+		float du2 = uvs[1][0] - uvs[2][0];
+		float dv1 = uvs[0][1] - uvs[2][1];
+		float dv2 = uvs[1][1] - uvs[2][1];
+		Normal dn1 = mesh->n[v[0]] - mesh->n[v[2]];
+		Normal dn2 = mesh->n[v[1]] - mesh->n[v[2]];
+		float determinant = du1 * dv2 - dv1 * du2;
+		if (determinant == 0.f)
+			dndu = dndv = Normal(0, 0, 0);
+		else {
+			float invdet = 1.f / determinant;
+			dndu = (dv2 * dn1 - dv1 * dn2) * invdet;
+			dndv = (-du2 * dn1 + du1 * dn2) * invdet;
+		}
+	}
+	else
+		dndu = dndv = Normal(0, 0, 0);
+
+	*dgShading = DifferentialGeometry(dg.p, ss, ts,
+		(*ObjectToWorld)(dndu), (*ObjectToWorld)(dndv),
+		dg.u, dg.v, dg.shape);
+	dgShading->dudx = dg.dudx;  dgShading->dvdx = dg.dvdx;
+	dgShading->dudy = dg.dudy;  dgShading->dvdy = dg.dvdy;
+	dgShading->dpdx = dg.dpdx;  dgShading->dpdy = dg.dpdy;
+}
