@@ -113,3 +113,29 @@ BSSRDF *GeometricPrimitive::GetBSSRDF(const DifferentialGeometry &dg,
 	shape->GetShadingGeometry(ObjectToWorld, dg, &dgs);
 	return material->GetBSSRDF(dg, dgs, arena);
 }
+
+
+//-----------------------------------transformprimitive---------------
+
+bool TransformPrimitive::Intersect(const Ray &r, Intersection *isect)const {
+	Transform w2p;
+	WorldToPrimitive.Interpolate(r.time, &w2p);
+	Ray ray = w2p(r);
+	if (!primitive->Intersect(ray, isect))
+		return false;
+	r.maxt = ray.maxt;
+	isect->primitiveId = primitiveId;
+	if (!w2p.IsIdentity()) {
+		isect->WorldToObject = isect->WorldToObject*w2p;
+		isect->ObjectToWorld = Inverse(isect->WorldToObject);
+
+		Transform PrimitiveToWorld = Inverse(w2p);
+		isect->dg.p = PrimitiveToWorld(isect->dg.p);
+		isect->dg.nn = Normalize(PrimitiveToWorld(isect->dg.nn));
+		isect->dg.dpdu = PrimitiveToWorld(isect->dg.dpdu);
+		isect->dg.dpdv = PrimitiveToWorld(isect->dg.dpdv);
+		isect->dg.dndu = PrimitiveToWorld(isect->dg.dndu);
+		isect->dg.dndv = PrimitiveToWorld(isect->dg.dndv);
+	}
+	return true;
+}

@@ -177,6 +177,8 @@ class AnimatedTransform {
 	Vector T[2];
 	Quaternion R[2];
 	Matrix4x4 S[2];
+
+	friend class TransformPrimitive;
 };
 
 

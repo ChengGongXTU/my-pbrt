@@ -68,5 +68,31 @@ private:
 	Arealight *arealight;				// stores a pointer to arealight
 };
 
-class 
+class TransformPrimitive :public Primitive {
+public:
+	TransformPrimitive(Reference<Primitive> &prim,
+		const AnimatedTransform &w2p)
+		:primitive(prim), WorldToPrimitive(w2p){}
+
+	// intersection by transforming ray from world space to prmitive space
+	bool Intersect(const Ray &r, Intersection *isect) const;
+
+	BBox WorldBound()const {
+		return WorldToPrimitive.MotionBounds(primitive->WorldBound, true);
+	}
+
+private:
+	Reference<Primitive> primitive;
+	const AnimatedTransform WorldToPrimitive;
+};
+
+
+
+class Aggregate :public Primitive {
+public:
+
+};
+
+
+
 

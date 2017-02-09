@@ -52,7 +52,7 @@ public:
 		return *this;
 	}
 
-	Vector operator/(float f) {                 //-----重载“/”除法----------
+	Vector operator/(float f)const {                 //-----重载“/”除法----------
 		Assert(f != 0);
 		float inv = 1.f / f;
 		return Vector(x*inv, y*inv, z*inv);
@@ -420,6 +420,7 @@ public:
 
 	void BoundingSphere(Point *c, float *rad) const;            //--------------求盒中一点相切的球形-----
 
+	bool IntersectP(const Ray &ray, float *hitt0, float *hitt1) const;
 
 	//-----------------------------------------bbox public data----------------------------------------------
 	Point pMin, pMax;

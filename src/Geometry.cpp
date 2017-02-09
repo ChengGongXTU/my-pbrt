@@ -26,3 +26,21 @@ BBox Union(const BBox &b, const Point &p) {         //--------给一个包围盒和点，
 	ret.pMax.z = fminf(b.pMax.z, p.z);
 	return ret;
 }
+
+bool BBox::IntersectP(const Ray &ray, float *hitt0, float *hitt1)const {
+	float t0 = ray.mint, t1 = ray.maxt;
+	for (int i = 0; i < 3; ++i) {
+		float invRayDir = 1.f / ray.d[i];
+		float tNear = (pMin[i] - ray.o[i])*invRayDir;
+		float tFar = (pMin[i] - ray.o[i])*invRayDir;
+		
+		if (tNear > tFar) swap(tNear, tFar);
+		t0 = tNear > t0 ? tNear : t0;
+		t1 = tFar < t1 ? tFar : t1;
+
+		if (t0 > t1) return false;
+	}
+	if (hitt0) *hitt0 = t0;
+	if (hitt1) *hitt1 = t1;
+	return false;
+}
