@@ -14,6 +14,7 @@ using std::max;
 using std::swap;
 using std::sort;
 
+typedef RGBSpectrum Spectrum;
 //----------global macro for memory management--------------------------------
 #define ALLOCA(TYPE, COUNT) (TYPE *)alloca((COUNT) * sizeof(TYPE))
 #define M_PI 3.1415926

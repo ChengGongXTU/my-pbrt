@@ -63,3 +63,88 @@ GridAccel::GridAccel(const vector<Reference<Primitive>> &p,
 	}
 
 }
+
+bool GridAccel::Intersect(const Ray &ray, Intersection *isect) const{
+	//  determine where the ray-box intersection is
+	float rayT;
+	if (bounds.Inside(ray(ray.mint)))  // if ray-min-point is in the bounds
+		rayT = ray.mint;
+	else if (!bounds.IntersectP(ray, &rayT))  // check if the ray is intersected by bounds.
+		return false;
+	Point gridIntersect = ray(rayT);    // the ray-bounds intersection
+
+	// 3D DDA:
+	float NextCrossingT[3], DeltaT[3];
+	int Step[3], Out[3], Pos[3];
+	for (int axis = 0; axis < 3; ++axis) {
+		Pos[axis] = posToVoxel(gridIntersect, axis);
+		if (ray.d[axis] >= 0) {
+			NextCrossingT[axis] = rayT + (voxelToPos(Pos[axis] + 1, axis) - gridIntersect[axis]) / ray.d[axis];
+			DeltaT[axis] = width[axis] / ray.d[axis];
+			Step[axis] = 1;
+			Out[axis] = nVoxels[axis];
+		}
+		else {
+			NextCrossingT[axis] = rayT + (voxelToPos(Pos[axis], axis) - gridIntersect[axis]) / ray.d[axis];
+			DeltaT[axis] = -width[axis] / ray.d[axis];
+			Step[axis] = -1;
+			Out[axis] = -1;
+		}
+	}
+
+	// 
+	RWMutexLock lock(*rwMutex, READ);
+	bool hitSomething = false;
+	for (;;) {
+		Voxel *voxel = voxels[offset(Pos[0], Pos[1], Pos[2])];
+		if (voxel != NULL)
+			hitSomething |= voxel->Intersect(ray, isect, lock);
+		int bits = ((NextCrossingT[0] < NextCrossingT[1]) << 2) +
+			((NextCrossingT[0] < NextCrossingT[2]) << 1) +
+			((NextCrossingT[1] < NextCrossingT[2]));
+		const int cmpToAxis[8] = { 2, 1, 2, 1, 2, 2, 0, 0 };
+		int stepAxis = cmpToAxis[bits];
+
+		int bits = ((NextCrossingT[0] < NextCrossingT[1]) << 2) +
+			((NextCrossingT[0] < NextCrossingT[2]) << 1) +
+			((NextCrossingT[1] < NextCrossingT[2]));
+		const int cmpToAxis[8] = { 2, 1, 2, 1, 2, 2, 0, 0 };
+		int stepAxis = cmpToAxis[bits];
+
+		if (ray.maxt < NextCrossingT[stepAxis])
+			break;
+		Pos[stepAxis] += Step[stepAxis];
+		if (Pos[stepAxis] == Out[stepAxis])
+			break;
+		NextCrossingT[stepAxis] += DeltaT[stepAxis];
+	}
+	return hitSomething;
+}
+
+
+bool Voxel::Intersect(const Ray &ray, Intersection *isect,
+	RWMutexLock &lock) {
+	if (!allCanIntersect) {
+		lock.UpgradeToWrite();
+		for (uint32_t i = 0; i < primitives.size(); ++i) {
+			Reference<Primitive> &prim = primitives[i];
+			if (!prim->CanIntersect()) {
+				vector<Reference<Primitive> > p;
+				prim->FullyRefine(p);
+				if (p.size() == 1)
+					primitives[i] = p[0];
+				else
+					primitives[i] = new GridAccel(p, false);
+			}
+		}
+		allCanIntersect = true;
+		lock.DowngradeToRead();
+	}
+	bool hitSomething = false;
+	for (uint32_t i = 0; i < primitives.size(); ++i) {
+		Reference<Primitive> &prim = primitives[i];
+		if (prim->Intersect(ray, isect))
+			hitSomething = true;
+	}
+	return hitSomething;
+}

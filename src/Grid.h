@@ -6,7 +6,10 @@ public:
 	GridAccel(const vector<Reference<Primitive>> &p,
 		bool refineImmediately);
 
+	bool Intersect(const Ray &ray, Intersection *isect) const;
+
 private:
+	mutable RWMutex *rwMutex;      // reader-write mutex
 
 	vector<Reference<Primitive>> primitives;
 
@@ -47,6 +50,10 @@ struct Voxel {
 	void AddPrimitive(Reference<Primitive> prim) {
 		primitives.push_back(prim);  //store primitive
 	}
+
+	bool Intersect(const Ray &ray, Intersection *isect, RWMutexLock &lock);
+
+	bool IntersectP(const Ray &ray) const;
 
 private:
 	vector<Reference<Primitive>> primitives;
